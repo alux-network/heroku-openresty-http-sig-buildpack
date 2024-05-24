@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# bin/compile BUILD_DIR CACHE_DIR ENV_DIR
+set -euo pipefail
+OLD_PATH="$PATH"
+
+BUILD_DIR="$1"
+CACHE_DIR="$2"
+ENV_DIR="$3"
+
+echo "-----> Installing OpenResty ..."
+tar -zxf "dist/openresty-$STACK".tar.gz -C "$BUILD_DIR"
+mkdir "$BUILD_DIR/bin"
+cp -a bin/startopenresty "$BUILD_DIR/bin/startopenresty"
+
+# Add a profile.d script to add openresty tools to PATH
+mkdir -p "$BUILD_DIR/.profile.d"
+cat << "EOF" > "$BUILD_DIR/.profile.d/000-openresty-path.sh"
+export PATH="$PATH:$HOME/openresty/bin:$HOME/openresty/luajit/bin:$HOME/openresty/nginx/sbin"
+export LD_LIBRARY_PATH=$HOME/openresty/luajit/lib:$HOME/openresty/pcre/lib:$HOME/openresty/openssl111/lib:$LD_LIBRARY_PATH
+export LIBRARY_PATH=$HOME/openresty/luajit/lib:$HOME/openresty/pcre/lib:$HOME/openresty/openssl111/lib:$LIBRARY_PATH
+EOF
+chmod +x "$BUILD_DIR/.profile.d/000-openresty-path.sh"
+
+ln -s "$BUILD_DIR/openresty" /app/openresty
+export PATH="$PATH:/app/openresty/bin:/app/openresty/luajit/bin:/app/openresty/nginx/sbin"
+
+# Copy the whole dir is not allowed in heroku.
+# cp -rf "$BUILD_DIR/nginx/*" "$BUILD_DIR/openresty/nginx/"
+# echo '-----> nginx-buildpack: copy nginx to app/openresty/nginx/'
+# cp -rf "$BUILD_DIR/lualib/*" "$BUILD_DIR/openresty/lualib/"
+# echo '-----> nginx-buildpack: copy lualib to app/openresty/lualib/'
+if [[ -f $BUILD_DIR/nginx/conf/nginx.conf ]]; then
+	cp "$BUILD_DIR/nginx/conf/nginx.conf" "$BUILD_DIR/openresty/nginx/conf/nginx.conf"
+	echo '-----> nginx-buildpack: copy nginx.conf to app/openresty/nginx/config/nginx.conf'
+else
+	echo '-----> nginx-buildpack: Custom nginx.conf not found in config.'
+fi
+if [[ -f $BUILD_DIR/lualib/http_sig/sign_response.lua ]]; then
+	cp "$BUILD_DIR/lualib/http_sig/sign_response.lua" "$BUILD_DIR/openresty/lualib/http_sig/sign_response.lua"
+	echo '-----> nginx-buildpack: copy sign_response.lua to app/openresty/lualib/http_sig/sign_response.lua'
+else
+	echo '-----> nginx-buildpack: Custom sign_response.lua not found in lualib/http_sig.'
+fi
+if [[ -f $BUILD_DIR/lualib/http_sig/hmac.lua ]]; then
+	cp "$BUILD_DIR/lualib/http_sig/hmac.lua" "$BUILD_DIR/openresty/lualib/http_sig/hmac.lua"
+	echo '-----> nginx-buildpack: copy hmac.lua to app/openresty/lualib/http_sig/hmac.lua'
+else
+	echo '-----> nginx-buildpack: Custom hmac.lua not found in lualib/http_sig.'
+fi
+if [[ -f $BUILD_DIR/lualib/http_sig/rsa.lua ]]; then
+	cp "$BUILD_DIR/lualib/http_sig/rsa.lua" "$BUILD_DIR/openresty/lualib/http_sig/rsa.lua"
+	echo '-----> nginx-buildpack: copy rsa.lua to app/openresty/lualib/http_sig/rsa.lua'
+else
+	echo '-----> nginx-buildpack: Custom rsa.lua not found in lualib/http_sig.'
+fi
+if [[ -f $BUILD_DIR/nginx/https_cert/test.alux.fun/privkey.pem ]]; then
+	cp "$BUILD_DIR/nginx/https_cert/test.alux.fun/privkey.pem" "$BUILD_DIR/openresty/nginx/https_cert/test.alux.fun/privkey.pem"
+	echo '-----> nginx-buildpack: copy test.alux.fun/privkey.pem to app/openresty/nginx/https_cert/test.alux.fun/privkey.pem'
+else
+	echo '-----> nginx-buildpack: Custom test.alux.fun/privkey.pem not found in lualib/http_sig.'
+fi
+rm -f /app/openresty
+export PATH="$OLD_PATH"

@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+OPENRESTY_DIR="$HOME/openresty"
+LUA_DIR="$OPENRESTY_DIR/lualib"
+OPENRESTY_BIN="$OPENRESTY_DIR/nginx/sbin/nginx"
+NGINX_CONF_DIR="$OPENRESTY_DIR/nginx/conf"
+NGINX_DIR="$OPENRESTY_DIR/nginx"
+DEST_NGINX_CONF="$NGINX_CONF_DIR/nginx.conf"
+
+TEST_NGINX_CONF="$(mktemp --tmpdir="$NGINX_CONF_DIR" --suffix=-nginx.conf.test)"
+
+cat <<- EOF | python - "$DEST_NGINX_CONF" > "$TEST_NGINX_CONF"
+import sys
+from os import environ
+from jinja2 import Template
+
+with open(sys.argv[1]) as f:
+  content = f.read()
+
+  try:
+    template = Template(content)
+    rendered = template.render(env=environ, **environ)
+    sys.stdout.write(rendered)
+  except:
+    for i, line in enumerate(content.splitlines(), start=1):
+      sys.stderr.write("{0:>4}: {1}\n".format(i, line))
+
+    raise
+EOF
+
+mv "$TEST_NGINX_CONF" "$DEST_NGINX_CONF"
+cd "$LUA_DIR"
+exec "$OPENRESTY_BIN" -p "$NGINX_DIR"  -c "$DEST_NGINX_CONF"
