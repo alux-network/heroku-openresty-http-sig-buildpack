@@ -50,6 +50,9 @@ This buildpack has been tested with the following Heroku stacks:
 
 * `heroku-22`
 
+## Note
+`nginx.conf` and `lua scripts` are included in the buildpack by default. If they exist in the App, the version in the App will be used.
+
 ## Reference
 [heroku-openresty-buildpack](https://github.com/benwilber/heroku-openresty-buildpack.git)
 
