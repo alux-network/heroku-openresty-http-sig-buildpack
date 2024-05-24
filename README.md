@@ -39,7 +39,7 @@ Visiting the app's URL(e.g. https://test.alux.fun) in your web browser will disp
 ```
 curl https://test.alux.fun
 ```
-Set the ```x-proxy-target``` value on the ```http header``` to the domain name you want to reverse proxy.
+Set the ```x-proxy-target``` value on the ```http header``` to the domain name(e.g. www.google.com) you want to reverse proxy.
 ```
 curl -H "x-proxy-target: www.google.com" https://test.alux.fun
 ```
